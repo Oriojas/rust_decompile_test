@@ -19,3 +19,12 @@ target/
 # Added by cargo
 
 /target
+
+# Environment variables with API keys
+.env
+.env.local
+.env.production
+.env.staging
+
+# ABI cache directory (optional - uncomment if you don't want to commit cached ABIs)
+# ABI/
