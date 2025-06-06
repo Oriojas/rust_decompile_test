@@ -1,15 +1,16 @@
-# 🔍 Decodificador de Contratos - Arbitrum Sepolia
+# 🔍 Decodificador de Contratos - Arbitrum Sepolia (Servicio Web)
 
-Una aplicación en Rust que obtiene automáticamente los ABIs de contratos desde Arbiscan Sepolia y decodifica datos de llamadas a funciones. Versión simplificada enfocada únicamente en la red de prueba Arbitrum Sepolia.
+Una aplicación en Rust que funciona como servicio web local para obtener ABIs de contratos desde Arbiscan Sepolia y decodificar datos de llamadas a funciones a través de un endpoint HTTP. Versión enfocada únicamente en la red de prueba Arbitrum Sepolia.
 
 ## 🚀 Características
 
 - **🌐 Arbitrum Sepolia**: Conectado específicamente a la testnet de Arbitrum Sepolia
-- **📥 Descarga Automática de ABI**: Obtiene ABIs de contratos desde Arbiscan Sepolia
+- **🌐 Servicio Web Local**: Ejecuta un servidor HTTP ligero
+- **📊 API JSON**: Endpoint `/decode` para recibir datos de contrato y llamada en formato JSON
+- **📥 Descarga Automática de ABI**: Obtiene ABIs de contratos desde Arbiscan Sepolia (si no están en caché)
 - **💾 Caché Local**: Guarda ABIs en la carpeta `ABI/` para acceso rápido
-- **🔓 Decodificación de Datos**: Identifica y decodifica automáticamente llamadas a funciones
-- **🔑 Soporte API Key**: Usa API keys de Arbiscan para mejor rendimiento
-- **💻 Interfaz Simple**: Proceso directo sin selección de redes
+- **🔓 Decodificación de Datos**: Identifica y decodifica automáticamente llamadas a funciones basadas en el ABI obtenido.
+- **🔑 Soporte API Key**: Usa API keys de Arbiscan para mejor rendimiento.
 
 ## 📋 Prerrequisitos
 
@@ -31,68 +32,81 @@ cp .env.example .env
 # Edita .env y agrega tu API key de Arbiscan
 ```
 
-3. Compila el proyecto:
+3. Compila el proyecto (esto no es estrictamente necesario para `cargo run`, pero es útil):
 ```bash
 cargo build --release
 ```
 
 ## 📖 Uso
 
+La aplicación ahora se ejecuta como un servidor web local.
+
 1. **Configuración de API Key (recomendada):**
    - Ve a https://arbiscan.io/apis
    - Regístrate y crea una API key gratuita
    - Edita `.env` y agrega: `ARBISCAN_API_KEY=tu_api_key_aqui`
 
-2. **Ejecuta la aplicación:**
+2. **Ejecuta el servicio web:**
 ```bash
 cargo run
 ```
+El servidor iniciará y escuchará peticiones en `http://127.0.0.1:8080`. La consola mostrará un mensaje similar a: `🚀 Servidor web iniciando en http://127.0.0.1:8080`. Deja esta terminal abierta ya que el servidor está corriendo en ella.
 
-3. **Ingresa la dirección del contrato** (con o sin prefijo 0x)
-
-4. **La herramienta:**
-   - Verificará si el contrato existe en Arbitrum Sepolia
-   - Obtendrá el ABI desde Arbiscan Sepolia
-   - Guardará el ABI localmente en `ABI/`
-   - Mostrará todas las funciones disponibles
-
-5. **Ingresa los datos de llamada** para decodificar la función y parámetros
+3. **Envía una petición POST al endpoint `/decode`:**
+   Usa una herramienta como `curl`, Postman, Insomnia, o un cliente HTTP programático para enviar una petición `POST` a `http://127.0.0.1:8080/decode`.
+   La petición debe tener el encabezado `Content-Type: application/json` y el cuerpo debe ser un objeto JSON con los siguientes campos:
+   - `contract_address`: Cadena de texto con la dirección del contrato en Arbitrum Sepolia (con o sin prefijo 0x).
+   - `call_data`: Cadena de texto con los datos de llamada de la transacción (en formato hexadecimal, con o sin prefijo 0x).
 
 ## 💡 Ejemplo de Uso
 
+**Petición (usando `curl`):**
+
+```bash
+curl -X POST http://127.0.0.1:8080/decode \
+-H "Content-Type: application/json" \
+-d '{
+    "contract_address": "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
+    "call_data": "0xa9059cbb000000000000000000000000742d35Cc6634C0532925a3b8D6Ac6ABDC3f72700000000000000000000000000000000000000000000000000de0b6b3a7640000"
+}'
 ```
-==============================
-🔍 Decodificador de Contratos - Arbitrum Sepolia
-==============================
 
-📍 Ingresa la dirección del contrato (con o sin prefijo 0x):
-0x980B62Da83eFf3D4576C647993b0c1D7faf17c73
+**Cuerpo de la Petición (JSON):**
 
-🔍 Verificando contrato en Arbitrum Sepolia...
-✅ Código de contrato encontrado (6206 bytes)
-
-==============================
-📥 Obteniendo ABI del contrato...
-🔑 Usando API key de Arbiscan
-📡 Consultando Arbiscan Sepolia...
-💾 ABI guardado en: ABI/0x980b62da83eff3d4576c647993b0c1d7faf17c73.json
-✅ ABI cargado exitosamente!
-
-📋 Funciones disponibles en el contrato:
-  - transfer: [Token(address,bytes32), Token(uint256,bytes32)]
-  - approve: [Token(address,bytes32), Token(uint256,bytes32)]
-  - balanceOf: [Token(address,bytes32)]
-  ...
-
-==============================
-📤 Ingresa los datos de llamada (hex con o sin prefijo 0x):
-0xa9059cbb000000000000000000000000742d35Cc6634C0532925a3b8D6Ac6ABDC3f72700000000000000000000000000000000000000000000000000de0b6b3a7640000
-
-==============================
-🔓 Decodificando llamada a función...
-✅ Función encontrada: transfer
-📝 Argumentos: [Token(0x742d35cc6634c0532925a3b8d6ac6abdc3f7270, address), Token(1000000000000000000, uint256)]
+```json
+{
+    "contract_address": "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
+    "call_data": "0xa9059cbb000000000000000000000000742d35Cc6634C0532925a3b8D6Ac6ABDC3f72700000000000000000000000000000000000000000000000000de0b6b3a7640000"
+}
 ```
+
+**Respuesta Exitosa (JSON):**
+
+```json
+{
+    "status": "success",
+    "function_name": "transfer",
+    "arguments": [
+        "Token(0x742d35cc6634c0532925a3b8d6ac6abdc3f7270, address)",
+        "Token(1000000000000000000, uint256)"
+    ],
+    "message": null,
+    "details": null
+}
+```
+
+**Respuesta de Error (JSON):**
+
+```json
+{
+    "status": "error",
+    "function_name": null,
+    "arguments": null,
+    "message": "Error al decodificar los datos de llamada",
+    "details": "No se encontró función coincidente para el selector: 0xa9059cbe"
+}
+```
+(Los detalles del error pueden variar)
 
 ## 🧪 Contratos de Ejemplo en Arbitrum Sepolia
 
@@ -109,9 +123,11 @@ Los ABIs se guardan automáticamente en la carpeta `ABI/` con formato:
 
 ## 📦 Dependencias
 
+- `actix-web`: Framework web asíncrono
 - `ethers`: Librería de Ethereum para Rust
 - `ethabi`: Codificador/decodificador de ABI
 - `reqwest`: Cliente HTTP para peticiones API
+- `serde` con la característica `derive`: Serialización/deserialización
 - `serde_json`: Serialización JSON
 - `tokio`: Runtime asíncrono
 - `hex`: Codificación hexadecimal
@@ -134,25 +150,21 @@ Los ABIs se guardan automáticamente en la carpeta `ABI/` con formato:
 
 ## 🛡️ Manejo de Errores
 
-La herramienta maneja:
-- Contratos no verificados en Arbiscan
-- Límites de rate sin API key
-- Direcciones de contrato inválidas
-- Datos de llamada malformados
+El servicio web responde con códigos de estado HTTP apropiados (ej. 200 OK para éxito, 400 Bad Request para entrada inválida, 500 Internal Server Error para errores internos) y un cuerpo JSON estructurado indicando el estado (`"success"` o `"error"`), un mensaje y, si está disponible, detalles del error.
 
 ## ⚠️ Limitaciones
 
-- Solo funciona con Arbitrum Sepolia
-- Requiere contratos verificados en Arbiscan
-- API key recomendada para uso confiable
-- Solo para testnet (no usar con dinero real)
+- Solo funciona con Arbitrum Sepolia.
+- Requiere contratos verificados en Arbiscan para obtener el ABI.
+- API key recomendada para uso confiable y evitar límites de rate.
+- Solo para testnet (no usar con dinero real).
 
 ## 🎯 Casos de Uso
 
-- **Desarrollo**: Prueba contratos antes del mainnet
-- **Debugging**: Analiza transacciones fallidas
-- **Aprendizaje**: Explora contratos sin riesgos
-- **Testing**: Valida funcionalidad de contratos
+- **Integración**: Permite que otros servicios o scripts locales decodifiquen llamadas a contratos.
+- **Automatización**: Útil en flujos de trabajo automatizados que necesiten analizar transacciones.
+- **Desarrollo**: Prueba y depuración de contratos durante el desarrollo.
+- **Análisis**: Herramienta para analizar datos de llamadas sin necesidad de una interfaz gráfica.
 
 ## 🤝 Contribuir
 
