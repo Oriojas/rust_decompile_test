@@ -27,4 +27,5 @@ target/
 .env.staging
 
 # ABI cache directory (optional - uncomment if you don't want to commit cached ABIs)
-# ABI/
+ABI/
+Cargo.lock
