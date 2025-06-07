@@ -98,8 +98,8 @@ Si solo necesitas decodificar los datos de llamada:
 curl -X POST http://127.0.0.1:8080/decode \
 -H "Content-Type: application/json" \
 -d '{
-    "contract_address": "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
-    "call_data": "0xa9059cbb000000000000000000000000742d35Cc6634C0532925a3b8D6Ac6ABDC3f72700000000000000000000000000000000000000000000000000de0b6b3a7640000"
+    "contract_address": "0xddc30F0bFaEe96Bc655BF7a815193061999dEDBb",
+    "call_data": "0x6057361d0000000000000000000000000000000000000000000000000000000000000003"
 }'
 ```
 
@@ -126,8 +126,8 @@ Para obtener tanto la decodificación como el análisis de riesgo en una sola pe
 curl -X POST http://127.0.0.1:8080/analysis \
 -H "Content-Type: application/json" \
 -d '{
-    "contract_address": "0x980B62Da83eFf3D4576C647993b0c1D7faf17c73",
-    "call_data": "0xa9059cbb000000000000000000000000742d35Cc6634C0532925a3b8D6Ac6ABDC3f72700000000000000000000000000000000000000000000000000de0b6b3a7640000"
+    "contract_address": "0xddc30F0bFaEe96Bc655BF7a815193061999dEDBb",
+    "call_data": "0x6057361d0000000000000000000000000000000000000000000000000000000000000003"
 }'
 ```
 
