@@ -13,6 +13,7 @@ Una aplicación en Rust que funciona como servicio web local para obtener ABIs d
 - **💾 Caché Local**: Guarda ABIs en la carpeta `ABI/` para acceso rápido.
 - **🔓 Decodificación de Datos**: Identifica y decodifica automáticamente llamadas a funciones basadas en el ABI obtenido.
 - **🧠 Análisis de Riesgo con LLM**: Utiliza un modelo de lenguaje (DeepSeek por defecto) para evaluar el riesgo de una transacción.
+- **⚙️ Configuración de Prompt Personalizable**: El prompt para el análisis de riesgo se puede modificar fácilmente desde un archivo JSON sin tocar el código.
 - **🔑 Soporte API Key**: Usa API keys de Arbiscan y DeepSeek para mejor rendimiento y acceso.
 
 ## 📋 Prerrequisitos
@@ -37,7 +38,10 @@ cp .env.example .env
 ```
 Consulta las secciones "Configuración de API Key" para obtener tus claves.
 
-3. Compila el proyecto (esto no es estrictamente necesario para `cargo run`, pero es útil):
+3. (Opcional) Personaliza el prompt de análisis:
+El archivo `src/prompt_config.json` contiene la configuración del prompt para el análisis de riesgo. Puedes modificarlo según tus necesidades sin tocar el código Rust.
+
+4. Compila el proyecto (esto no es estrictamente necesario para `cargo run`, pero es útil):
 ```bash
 cargo build --release
 ```
@@ -175,6 +179,46 @@ Puedes usar estos contratos para probar los endpoints:
 Los ABIs se guardan automáticamente en la carpeta `ABI/` con formato:
 - `{dirección_del_contrato}.json`
 - Ejemplo: `0x980b62da83eff3d4576c647993b0c1d7faf17c73.json`
+
+## ⚙️ Configuración del Prompt de Análisis
+
+El archivo `prompt_config.json` permite personalizar el comportamiento del análisis de riesgo sin modificar el código:
+
+```json
+{
+  "system_message": "Eres un experto en seguridad de contratos inteligentes...",
+  "user_prompt_template": "Analiza la siguiente llamada... {contract_address}...",
+  "response_format": {
+    "risk_level_prefix": "RISK_LEVEL:",
+    "explanation_prefix": "EXPLANATION:"
+  },
+  "model_settings": {
+    "model": "deepseek-chat",
+    "stream": false
+  }
+}
+```
+
+### Parámetros de Configuración:
+
+- **`system_message`**: Define el rol y contexto del modelo de lenguaje
+- **`user_prompt_template`**: Plantilla del prompt principal con variables:
+  - `{contract_address}`: Se reemplaza con la dirección del contrato
+  - `{function_name}`: Se reemplaza con el nombre de la función decodificada
+  - `{arguments}`: Se reemplaza con los argumentos decodificados
+- **`response_format`**: Prefijos que el modelo debe usar para estructurar su respuesta
+- **`model_settings`**: Configuración del modelo (nombre y streaming)
+
+### Personalización del Prompt:
+
+Puedes modificar el `prompt_config.json` para:
+- Cambiar el idioma del análisis
+- Ajustar el nivel de detalle técnico
+- Modificar los criterios de evaluación de riesgo
+- Personalizar el formato de respuesta
+- Cambiar el modelo de lenguaje utilizado
+
+Los cambios se aplican automáticamente al reiniciar el servicio.
 
 ## 📦 Dependencias
 

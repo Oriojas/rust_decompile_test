@@ -1,13 +1,37 @@
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use ethabi::{Contract, Token};
 use ethers::types::Address;
-use reqwest::{header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE}, Client};
+use reqwest::{
+    header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
+    Client,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::env;
 use std::fs;
 use std::path::Path;
 use url::Url;
+
+// Struct para la configuración del prompt
+#[derive(Deserialize)]
+struct PromptConfig {
+    system_message: String,
+    user_prompt_template: String,
+    response_format: ResponseFormat,
+    model_settings: ModelSettings,
+}
+
+#[derive(Deserialize)]
+struct ResponseFormat {
+    risk_level_prefix: String,
+    explanation_prefix: String,
+}
+
+#[derive(Deserialize)]
+struct ModelSettings {
+    model: String,
+    stream: bool,
+}
 
 // Struct para la petición JSON entrante del endpoint /decode
 #[derive(Deserialize)]
@@ -24,7 +48,7 @@ struct DecodeResponse {
     arguments: Option<Vec<String>>, // Represent arguments as strings for simplicity
     message: Option<String>,
     details: Option<String>, // For additional error info
-    abi: Option<Value>, // Include ABI in successful response for analysis endpoint
+    abi: Option<Value>,      // Include ABI in successful response for analysis endpoint
 }
 
 // Struct para la petición JSON entrante del endpoint /analysis
@@ -37,16 +61,18 @@ struct AnalysisRequest {
 // Struct para la respuesta JSON saliente del endpoint /analysis
 #[derive(Serialize)]
 struct AnalysisResponse {
-    status: String, // "success" or "error"
-    function_name: Option<String>, // Include decoded function name
+    status: String,                 // "success" or "error"
+    function_name: Option<String>,  // Include decoded function name
     arguments: Option<Vec<String>>, // Include decoded arguments
-    risk_level: Option<String>, // e.g., "Low", "Medium", "High", "Caution", "Unknown"
-    explanation: Option<String>, // Explanation from the LLM
+    risk_level: Option<String>,     // e.g., "Low", "Medium", "High", "Caution", "Unknown"
+    explanation: Option<String>,    // Explanation from the LLM
     message: Option<String>,
     details: Option<String>, // For additional error info
 }
 
-async fn fetch_abi_from_arbiscan(contract_address: &str) -> Result<Value, Box<dyn std::error::Error>> {
+async fn fetch_abi_from_arbiscan(
+    contract_address: &str,
+) -> Result<Value, Box<dyn std::error::Error>> {
     let api_key = env::var("ARBISCAN_API_KEY").unwrap_or_default();
 
     let url = if api_key.is_empty() {
@@ -76,7 +102,9 @@ async fn fetch_abi_from_arbiscan(contract_address: &str) -> Result<Value, Box<dy
 }
 
 // Modificado para retornar Contract y ABI Value
-async fn get_or_fetch_abi(contract_address: &Address) -> Result<(Contract, Value), Box<dyn std::error::Error>> {
+async fn get_or_fetch_abi(
+    contract_address: &Address,
+) -> Result<(Contract, Value), Box<dyn std::error::Error>> {
     let abi_dir = "ABI";
     let abi_filename = format!("{}.json", contract_address);
     let abi_path = Path::new(abi_dir).join(&abi_filename);
@@ -108,7 +136,10 @@ async fn get_or_fetch_abi(contract_address: &Address) -> Result<(Contract, Value
 }
 
 // Modificado para retornar resultado en lugar de imprimir
-fn decode_function_call(contract: &Contract, call_data: &str) -> Result<(String, Vec<Token>), Box<dyn std::error::Error>> {
+fn decode_function_call(
+    contract: &Contract,
+    call_data: &str,
+) -> Result<(String, Vec<Token>), Box<dyn std::error::Error>> {
     let call_data_bytes = hex::decode(call_data.strip_prefix("0x").unwrap_or(call_data))?;
 
     if call_data_bytes.len() < 4 {
@@ -134,7 +165,19 @@ fn decode_function_call(contract: &Contract, call_data: &str) -> Result<(String,
         }
     }
 
-    Err(format!("No se encontró función coincidente para el selector: 0x{}", hex::encode(function_selector)).into())
+    Err(format!(
+        "No se encontró función coincidente para el selector: 0x{}",
+        hex::encode(function_selector)
+    )
+    .into())
+}
+
+// Función para cargar la configuración del prompt
+fn load_prompt_config() -> Result<PromptConfig, Box<dyn std::error::Error>> {
+    let config_path = "src/prompt_config.json";
+    let config_content = fs::read_to_string(config_path)?;
+    let config: PromptConfig = serde_json::from_str(&config_content)?;
+    Ok(config)
 }
 
 // Manejador para la ruta /decode
@@ -180,16 +223,14 @@ async fn decode_handler(req: web::Json<DecodeRequest>) -> impl Responder {
                 abi: Some(abi),
             })
         }
-        Err(e) => {
-            HttpResponse::InternalServerError().json(DecodeResponse {
-                status: "error".to_string(),
-                function_name: None,
-                arguments: None,
-                message: Some("Error al decodificar los datos de llamada".to_string()),
-                details: Some(e.to_string()),
-                abi: None,
-            })
-        }
+        Err(e) => HttpResponse::InternalServerError().json(DecodeResponse {
+            status: "error".to_string(),
+            function_name: None,
+            arguments: None,
+            message: Some("Error al decodificar los datos de llamada".to_string()),
+            details: Some(e.to_string()),
+            abi: None,
+        }),
     }
 }
 
@@ -261,10 +302,26 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
         }
     };
 
+    // Cargar configuración del prompt
+    let prompt_config = match load_prompt_config() {
+        Ok(config) => config,
+        Err(e) => {
+            return HttpResponse::InternalServerError().json(AnalysisResponse {
+                status: "error".to_string(),
+                function_name: Some(function_name),
+                arguments: Some(arguments),
+                risk_level: None,
+                explanation: None,
+                message: Some("Error al cargar la configuración del prompt".to_string()),
+                details: Some(e.to_string()),
+            });
+        }
+    };
+
     let api_url = match Url::parse("https://api.deepseek.com/chat/completions") {
         Ok(url) => url,
         Err(e) => {
-             return HttpResponse::InternalServerError().json(AnalysisResponse {
+            return HttpResponse::InternalServerError().json(AnalysisResponse {
                 status: "error".to_string(),
                 function_name: Some(function_name),
                 arguments: Some(arguments),
@@ -285,32 +342,20 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
     );
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
-    // Construct the prompt for the LLM
-    let prompt = format!(
-        r#"Analiza la siguiente llamada a una función de contrato inteligente de Ethereum en la red Arbitrum Sepolia para identificar posibles riesgos de seguridad o comportamiento inesperado.
-
-Dirección del Contrato: {}
-Función: {}
-Argumentos: {:?}
-
-Basado en la función y los argumentos, describe brevemente el propósito de esta llamada a función y evalúa su riesgo potencial si se ejecuta en la testnet de Arbitrum Sepolia. Categoriza el riesgo como: Bajo, Medio, Alto o Precaución. Si no puedes determinar el riesgo, usa Desconocido.
-
-Formato de respuesta requerido:
-RISK_LEVEL: [Tu evaluación del riesgo aquí]
-EXPLANATION: [Tu explicación detallada aquí]
-"#,
-        req.contract_address,
-        function_name,
-        arguments
-    );
+    // Construct the prompt for the LLM using the config
+    let prompt = prompt_config
+        .user_prompt_template
+        .replace("{contract_address}", &req.contract_address)
+        .replace("{function_name}", &function_name)
+        .replace("{arguments}", &format!("{:?}", arguments));
 
     let body = json!({
-        "model": "deepseek-chat",
+        "model": prompt_config.model_settings.model,
         "messages": [
-            {"role": "system", "content": "Eres un experto en seguridad de contratos inteligentes y análisis de transacciones de Ethereum."},
+            {"role": "system", "content": prompt_config.system_message},
             {"role": "user", "content": prompt}
         ],
-        "stream": false
+        "stream": prompt_config.model_settings.stream
     });
 
     let response = client
@@ -327,17 +372,23 @@ EXPLANATION: [Tu explicación detallada aquí]
 
             match full_response {
                 Ok(json_response) => {
-                    let content = json_response["choices"][0]["message"]["content"].as_str().unwrap_or("");
+                    let content = json_response["choices"][0]["message"]["content"]
+                        .as_str()
+                        .unwrap_or("");
 
                     let risk_level = content
                         .lines()
-                        .find(|line| line.starts_with("RISK_LEVEL:"))
+                        .find(|line| {
+                            line.starts_with(&prompt_config.response_format.risk_level_prefix)
+                        })
                         .and_then(|line| line.split(":").nth(1))
                         .map(|s| s.trim().to_string());
 
                     let explanation = content
                         .lines()
-                        .find(|line| line.starts_with("EXPLANATION:"))
+                        .find(|line| {
+                            line.starts_with(&prompt_config.response_format.explanation_prefix)
+                        })
                         .and_then(|line| line.split(":").nth(1))
                         .map(|s| s.trim().to_string())
                         .or_else(|| {
@@ -346,7 +397,9 @@ EXPLANATION: [Tu explicación detallada aquí]
                             let explanation_lines: Vec<&str> = content
                                 .lines()
                                 .filter(|line| {
-                                    if line.starts_with("EXPLANATION:") {
+                                    if line.starts_with(
+                                        &prompt_config.response_format.explanation_prefix,
+                                    ) {
                                         found_explanation = true;
                                         false // No incluir esta línea
                                     } else {
@@ -354,7 +407,7 @@ EXPLANATION: [Tu explicación detallada aquí]
                                     }
                                 })
                                 .collect();
-                            
+
                             if !explanation_lines.is_empty() {
                                 Some(explanation_lines.join("\n"))
                             } else {
@@ -373,41 +426,40 @@ EXPLANATION: [Tu explicación detallada aquí]
                             details: None,
                         })
                     } else {
-                         HttpResponse::InternalServerError().json(AnalysisResponse {
+                        HttpResponse::InternalServerError().json(AnalysisResponse {
                             status: "error".to_string(),
                             function_name: Some(function_name),
                             arguments: Some(arguments),
                             risk_level: None,
                             explanation: None,
-                            message: Some(format!("Error en la API de DeepSeek (HTTP status: {})", status)),
+                            message: Some(format!(
+                                "Error en la API de DeepSeek (HTTP status: {})",
+                                status
+                            )),
                             details: Some(json_response.to_string()),
                         })
                     }
                 }
-                Err(e) => {
-                    HttpResponse::InternalServerError().json(AnalysisResponse {
-                        status: "error".to_string(),
-                        function_name: Some(function_name),
-                        arguments: Some(arguments),
-                        risk_level: None,
-                        explanation: None,
-                        message: Some("Error al parsear la respuesta JSON de DeepSeek".to_string()),
-                        details: Some(e.to_string()),
-                    })
-                }
+                Err(e) => HttpResponse::InternalServerError().json(AnalysisResponse {
+                    status: "error".to_string(),
+                    function_name: Some(function_name),
+                    arguments: Some(arguments),
+                    risk_level: None,
+                    explanation: None,
+                    message: Some("Error al parsear la respuesta JSON de DeepSeek".to_string()),
+                    details: Some(e.to_string()),
+                }),
             }
         }
-        Err(e) => {
-            HttpResponse::InternalServerError().json(AnalysisResponse {
-                status: "error".to_string(),
-                function_name: Some(function_name),
-                arguments: Some(arguments),
-                risk_level: None,
-                explanation: None,
-                message: Some("Error al llamar a la API de DeepSeek".to_string()),
-                details: Some(e.to_string()),
-            })
-        }
+        Err(e) => HttpResponse::InternalServerError().json(AnalysisResponse {
+            status: "error".to_string(),
+            function_name: Some(function_name),
+            arguments: Some(arguments),
+            risk_level: None,
+            explanation: None,
+            message: Some("Error al llamar a la API de DeepSeek".to_string()),
+            details: Some(e.to_string()),
+        }),
     }
 }
 
