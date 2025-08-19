@@ -15,6 +15,7 @@ Una aplicación en Rust que funciona como servicio web local para obtener ABIs d
 - **🧠 Análisis de Riesgo con LLM**: Utiliza un modelo de lenguaje (DeepSeek por defecto) para evaluar el riesgo de una transacción.
 - **⚙️ Configuración de Prompt Personalizable**: El prompt para el análisis de riesgo se puede modificar fácilmente desde un archivo JSON sin tocar el código.
 - **🔑 Soporte API Key**: Usa API keys de Arbiscan y DeepSeek para mejor rendimiento y acceso.
+- **📝 Sistema de Logging Completo**: Logs detallados de todas las peticiones HTTP, errores y eventos del sistema con diferentes niveles de verbosidad.
 
 ## 📋 Prerrequisitos
 
@@ -63,7 +64,32 @@ La aplicación ahora se ejecuta como un servidor web local.
 ```bash
 cargo run
 ```
-El servidor iniciará y escuchará peticiones en `http://127.0.0.1:8080`. La consola mostrará un mensaje similar a: `🚀 Servidor web iniciando en http://127.0.0.1:8080`. Deja esta terminal abierta ya que el servidor está corriendo en ella.
+El servidor iniciará y escuchará peticiones en `http://127.0.0.1:8080`. La consola mostrará mensajes de logging con información detallada sobre todas las peticiones. Deja esta terminal abierta ya que el servidor está corriendo en ella.
+
+### Configuración de Logging
+
+El sistema incluye logging detallado que se puede configurar con variables de entorno:
+
+```bash
+# Nivel básico (recomendado)
+RUST_LOG=info cargo run
+
+# Debug detallado
+RUST_LOG=debug cargo run
+
+# Solo errores  
+RUST_LOG=error cargo run
+
+# Logs específicos por módulo
+RUST_LOG=rust_decompile_test=debug,actix_web=info cargo run
+```
+
+Los logs incluyen información sobre:
+- 📥 Peticiones recibidas en ambos endpoints
+- ✅ Operaciones exitosas con detalles de funciones y argumentos
+- ❌ Errores de validación, API y decodificación
+- 🌐 Solicitudes a APIs externas (Arbiscan, DeepSeek)
+- 💾 Operaciones de caché local de ABIs
 
 3. **Envía peticiones a los endpoints:**
    Usa una herramienta como `curl`, Postman, Insomnia, o un cliente HTTP programático para enviar peticiones `POST` a los endpoints. Las peticiones deben tener el encabezado `Content-Type: application/json`.
@@ -232,6 +258,8 @@ Los cambios se aplican automáticamente al reiniciar el servicio.
 - `hex`: Codificación hexadecimal
 - `dotenv`: Variables de entorno
 - `url`: Utilizado para parsear URLs de API
+- `log`: Biblioteca de logging estándar
+- `env_logger`: Implementación de logger para variables de entorno
 
 ## 🔑 Configuración de API Key
 
@@ -253,6 +281,55 @@ Los cambios se aplican automáticamente al reiniciar el servicio.
     - Regístrate y busca la sección de API o Platform
     - Genera una nueva API key y cópiala al archivo `.env`
     - Consulta la documentación de DeepSeek para detalles sobre modelos y límites de uso gratuito
+
+## 📝 Sistema de Logging
+
+El servicio incluye un sistema completo de logging que proporciona visibilidad de todas las operaciones:
+
+### Niveles de Log Disponibles
+- **INFO (`info!`)**: Mensajes informativos sobre el flujo normal
+- **WARN (`warn!`)**: Advertencias sobre situaciones inusuales
+- **ERROR (`error!`)**: Errores que afectan la funcionalidad
+
+### Mensajes Implementados
+
+#### Endpoint `/decode`
+- 📥 Peticiones recibidas con dirección de contrato
+- ❌ Direcciones de contrato inválidas
+- ❌ Errores al obtener ABI
+- ✅ Decodificaciones exitosas con función y argumentos
+- ❌ Errores al decodificar call data
+
+#### Endpoint `/analysis`  
+- 📥 Peticiones recibidas con dirección de contrato
+- ❌ API key de DeepSeek no configurada
+- ❌ Direcciones de contrato inválidas
+- ❌ Errores al obtener ABI/decodificar
+- 📤 Solicitudes a DeepSeek API
+- 📥 Respuestas de DeepSeek con status
+- ✅ Análisis completados exitosamente
+- ❌ Errores de API
+
+#### Funciones Auxiliares
+- 📁 Creación de directorio ABI
+- 📖 Carga de ABI desde archivo local
+- 🌐 Búsqueda de ABI en Arbiscan
+- 💾 Guardado de ABI en archivo local
+
+### Formato de Logs
+Los logs siguen el formato estándar:
+```
+[YYYY-MM-DD HH:MM:SS] LEVEL Mensaje con emojis descriptivos
+```
+
+### Monitoreo y Redirección
+```bash
+# Guardar logs en archivo
+cargo run > app.log 2>&1
+
+# Ver logs en tiempo real y guardar
+cargo run | tee app.log
+```
 
 ## 🛡️ Manejo de Errores
 

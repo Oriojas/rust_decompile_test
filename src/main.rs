@@ -1,6 +1,7 @@
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use ethabi::{Contract, Token};
 use ethers::types::Address;
+use log::{error, info, warn};
 use reqwest::{
     header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE},
     Client,
@@ -73,6 +74,10 @@ struct AnalysisResponse {
 async fn fetch_abi_from_arbiscan(
     contract_address: &str,
 ) -> Result<Value, Box<dyn std::error::Error>> {
+    info!(
+        "🌐 Solicitando ABI de Arbiscan para contrato: {}",
+        contract_address
+    );
     let api_key = env::var("ARBISCAN_API_KEY").unwrap_or_default();
 
     let url = if api_key.is_empty() {
@@ -89,15 +94,19 @@ async fn fetch_abi_from_arbiscan(
     };
 
     let client = reqwest::Client::new();
+    info!("📤 Enviando solicitud a Arbiscan API");
     let response = client.get(&url).send().await?;
     let json: Value = response.json().await?;
 
     if json["status"] == "1" {
+        info!("✅ ABI obtenido exitosamente de Arbiscan");
         let abi_string = json["result"].as_str().unwrap();
         let abi: Value = serde_json::from_str(abi_string)?;
         Ok(abi)
     } else {
-        Err(format!("Error al obtener ABI: {}", json["message"]).into())
+        let error_msg = json["message"].as_str().unwrap_or("Error desconocido");
+        error!("❌ Error al obtener ABI de Arbiscan: {}", error_msg);
+        Err(format!("Error al obtener ABI: {}", error_msg).into())
     }
 }
 
@@ -110,26 +119,36 @@ async fn get_or_fetch_abi(
     let abi_path = Path::new(abi_dir).join(&abi_filename);
 
     if !Path::new(abi_dir).exists() {
+        info!("📁 Creando directorio ABI: {}", abi_dir);
         fs::create_dir_all(abi_dir)?;
     }
 
     if abi_path.exists() {
+        info!("📖 Cargando ABI desde archivo local: {}", abi_filename);
         let abi_string = fs::read_to_string(&abi_path)?;
         let abi: Value = serde_json::from_str(&abi_string)?;
         let contract = Contract::load(abi.to_string().as_bytes())?;
+        info!("✅ ABI cargado exitosamente desde archivo local");
         return Ok((contract, abi));
     }
 
     let address_string = format!("{:?}", contract_address);
+    info!(
+        "🌐 ABI no encontrado localmente, buscando en Arbiscan: {}",
+        address_string
+    );
 
     match fetch_abi_from_arbiscan(&address_string).await {
         Ok(abi) => {
+            info!("✅ ABI obtenido exitosamente de Arbiscan");
             let abi_string = serde_json::to_string_pretty(&abi)?;
             fs::write(&abi_path, &abi_string)?;
+            info!("💾 ABI guardado en archivo local: {}", abi_filename);
             let contract = Contract::load(abi_string.as_bytes())?;
             Ok((contract, abi))
         }
         Err(e) => {
+            error!("❌ Error al obtener ABI de Arbiscan: {}", e);
             Err(format!("No se pudo obtener el ABI: {}. Asegúrate de que el contrato esté verificado en Arbiscan Sepolia.", e).into())
         }
     }
@@ -182,10 +201,19 @@ fn load_prompt_config() -> Result<PromptConfig, Box<dyn std::error::Error>> {
 
 // Manejador para la ruta /decode
 async fn decode_handler(req: web::Json<DecodeRequest>) -> impl Responder {
+    info!(
+        "📥 Petición recibida en /decode - Contrato: {}",
+        req.contract_address
+    );
+
     let contract_address_result = req.contract_address.parse::<Address>();
     let contract_address = match contract_address_result {
         Ok(addr) => addr,
         Err(e) => {
+            warn!(
+                "❌ Dirección de contrato inválida: {} - Error: {}",
+                req.contract_address, e
+            );
             return HttpResponse::BadRequest().json(DecodeResponse {
                 status: "error".to_string(),
                 function_name: None,
@@ -200,6 +228,7 @@ async fn decode_handler(req: web::Json<DecodeRequest>) -> impl Responder {
     let (contract, abi) = match get_or_fetch_abi(&contract_address).await {
         Ok((c, a)) => (c, a),
         Err(e) => {
+            error!("❌ Error al obtener ABI para {}: {}", contract_address, e);
             return HttpResponse::InternalServerError().json(DecodeResponse {
                 status: "error".to_string(),
                 function_name: None,
@@ -214,6 +243,10 @@ async fn decode_handler(req: web::Json<DecodeRequest>) -> impl Responder {
     match decode_function_call(&contract, &req.call_data) {
         Ok((name, args)) => {
             let args_str: Vec<String> = args.into_iter().map(|arg| format!("{:?}", arg)).collect();
+            info!(
+                "✅ Decodificación exitosa - Función: {}, Argumentos: {:?}",
+                name, args_str
+            );
             HttpResponse::Ok().json(DecodeResponse {
                 status: "success".to_string(),
                 function_name: Some(name),
@@ -223,22 +256,34 @@ async fn decode_handler(req: web::Json<DecodeRequest>) -> impl Responder {
                 abi: Some(abi),
             })
         }
-        Err(e) => HttpResponse::InternalServerError().json(DecodeResponse {
-            status: "error".to_string(),
-            function_name: None,
-            arguments: None,
-            message: Some("Error al decodificar los datos de llamada".to_string()),
-            details: Some(e.to_string()),
-            abi: None,
-        }),
+        Err(e) => {
+            error!("❌ Error al decodificar call data: {}", e);
+            HttpResponse::InternalServerError().json(DecodeResponse {
+                status: "error".to_string(),
+                function_name: None,
+                arguments: None,
+                message: Some("Error al decodificar los datos de llamada".to_string()),
+                details: Some(e.to_string()),
+                abi: None,
+            })
+        }
     }
 }
 
 // Manejador para la ruta /analysis
 async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
+    info!(
+        "📥 Petición recibida en /analysis - Contrato: {}",
+        req.contract_address
+    );
+
     let deepseek_api_key = match env::var("DEEPSEEK_API_KEY") {
         Ok(key) => key,
         Err(_) => {
+            error!(
+                "❌ DEEPSEEK_API_KEY no configurada para análisis de contrato: {}",
+                req.contract_address
+            );
             return HttpResponse::InternalServerError().json(AnalysisResponse {
                 status: "error".to_string(),
                 function_name: None,
@@ -255,6 +300,10 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
     let contract_address = match req.contract_address.parse::<Address>() {
         Ok(addr) => addr,
         Err(e) => {
+            warn!(
+                "❌ Dirección de contrato inválida en análisis: {} - Error: {}",
+                req.contract_address, e
+            );
             return HttpResponse::BadRequest().json(AnalysisResponse {
                 status: "error".to_string(),
                 function_name: None,
@@ -271,6 +320,10 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
     let (contract, _abi) = match get_or_fetch_abi(&contract_address).await {
         Ok((c, a)) => (c, a),
         Err(e) => {
+            error!(
+                "❌ Error al obtener ABI para análisis de {}: {}",
+                contract_address, e
+            );
             return HttpResponse::InternalServerError().json(AnalysisResponse {
                 status: "error".to_string(),
                 function_name: None,
@@ -290,6 +343,7 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
             (name, args_str)
         }
         Err(e) => {
+            error!("❌ Error al decodificar call data en análisis: {}", e);
             return HttpResponse::InternalServerError().json(AnalysisResponse {
                 status: "error".to_string(),
                 function_name: None,
@@ -306,6 +360,7 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
     let prompt_config = match load_prompt_config() {
         Ok(config) => config,
         Err(e) => {
+            error!("❌ Error al cargar configuración del prompt: {}", e);
             return HttpResponse::InternalServerError().json(AnalysisResponse {
                 status: "error".to_string(),
                 function_name: Some(function_name),
@@ -321,6 +376,7 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
     let api_url = match Url::parse("https://api.deepseek.com/chat/completions") {
         Ok(url) => url,
         Err(e) => {
+            error!("❌ Error al construir URL de API DeepSeek: {}", e);
             return HttpResponse::InternalServerError().json(AnalysisResponse {
                 status: "error".to_string(),
                 function_name: Some(function_name),
@@ -358,6 +414,11 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
         "stream": prompt_config.model_settings.stream
     });
 
+    info!(
+        "📤 Enviando solicitud a DeepSeek API - Función: {}",
+        function_name
+    );
+
     let response = client
         .post(api_url)
         .headers(headers)
@@ -368,6 +429,7 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
     match response {
         Ok(res) => {
             let status = res.status();
+            info!("📥 Respuesta de DeepSeek - Status: {}", status);
             let full_response: Result<Value, _> = res.json().await;
 
             match full_response {
@@ -416,6 +478,7 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
                         });
 
                     if status.is_success() {
+                        info!("✅ Análisis completado exitosamente - Función: {}, Nivel de riesgo: {:?}", function_name, risk_level);
                         HttpResponse::Ok().json(AnalysisResponse {
                             status: "success".to_string(),
                             function_name: Some(function_name),
@@ -426,6 +489,10 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
                             details: None,
                         })
                     } else {
+                        error!(
+                            "❌ Error en API DeepSeek - Status: {}, Respuesta: {}",
+                            status, json_response
+                        );
                         HttpResponse::InternalServerError().json(AnalysisResponse {
                             status: "error".to_string(),
                             function_name: Some(function_name),
@@ -440,36 +507,43 @@ async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder {
                         })
                     }
                 }
-                Err(e) => HttpResponse::InternalServerError().json(AnalysisResponse {
-                    status: "error".to_string(),
-                    function_name: Some(function_name),
-                    arguments: Some(arguments),
-                    risk_level: None,
-                    explanation: None,
-                    message: Some("Error al parsear la respuesta JSON de DeepSeek".to_string()),
-                    details: Some(e.to_string()),
-                }),
+                Err(e) => {
+                    error!("❌ Error al parsear JSON de DeepSeek: {}", e);
+                    HttpResponse::InternalServerError().json(AnalysisResponse {
+                        status: "error".to_string(),
+                        function_name: Some(function_name),
+                        arguments: Some(arguments),
+                        risk_level: None,
+                        explanation: None,
+                        message: Some("Error al parsear la respuesta JSON de DeepSeek".to_string()),
+                        details: Some(e.to_string()),
+                    })
+                }
             }
         }
-        Err(e) => HttpResponse::InternalServerError().json(AnalysisResponse {
-            status: "error".to_string(),
-            function_name: Some(function_name),
-            arguments: Some(arguments),
-            risk_level: None,
-            explanation: None,
-            message: Some("Error al llamar a la API de DeepSeek".to_string()),
-            details: Some(e.to_string()),
-        }),
+        Err(e) => {
+            error!("❌ Error al llamar a API DeepSeek: {}", e);
+            HttpResponse::InternalServerError().json(AnalysisResponse {
+                status: "error".to_string(),
+                function_name: Some(function_name),
+                arguments: Some(arguments),
+                risk_level: None,
+                explanation: None,
+                message: Some("Error al llamar a la API de DeepSeek".to_string()),
+                details: Some(e.to_string()),
+            })
+        }
     }
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
+    env_logger::init();
 
     let server_address = "127.0.0.1:8080";
 
-    println!("🚀 Servidor web iniciando en http://{}", server_address);
+    info!("🚀 Servidor web iniciando en http://{}", server_address);
 
     HttpServer::new(|| {
         App::new()
