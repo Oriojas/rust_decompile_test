@@ -251,6 +251,9 @@ pub async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder
                         .as_str()
                         .unwrap_or("");
 
+                    // Log del contenido completo para depuración
+                    info!("📄 Contenido completo de la respuesta LLM: {}", content);
+
                     let risk_level = content
                         .lines()
                         .find(|line| {
@@ -259,36 +262,19 @@ pub async fn analysis_handler(req: web::Json<AnalysisRequest>) -> impl Responder
                         .and_then(|line| line.split(":").nth(1))
                         .map(|s| s.trim().to_string());
 
-                    let explanation = content
-                        .lines()
-                        .find(|line| {
-                            line.starts_with(&prompt_config.response_format.explanation_prefix)
-                        })
-                        .and_then(|line| line.split(":").nth(1))
-                        .map(|s| s.trim().to_string())
-                        .or_else(|| {
-                            // Si no encuentra EXPLANATION:, busca líneas después de EXPLANATION:
-                            let mut found_explanation = false;
-                            let explanation_lines: Vec<&str> = content
-                                .lines()
-                                .filter(|line| {
-                                    if line.starts_with(
-                                        &prompt_config.response_format.explanation_prefix,
-                                    ) {
-                                        found_explanation = true;
-                                        false // No incluir esta línea
-                                    } else {
-                                        found_explanation
-                                    }
-                                })
-                                .collect();
-
-                            if !explanation_lines.is_empty() {
-                                Some(explanation_lines.join("\n"))
-                            } else {
-                                None
-                            }
-                        });
+                    let explanation = if let Some(start) =
+                        content.find(&prompt_config.response_format.explanation_prefix)
+                    {
+                        let after_prefix =
+                            start + prompt_config.response_format.explanation_prefix.len();
+                        if content[after_prefix..].starts_with(':') {
+                            Some(content[(after_prefix + 1)..].trim().to_string())
+                        } else {
+                            Some(content[after_prefix..].trim().to_string())
+                        }
+                    } else {
+                        None
+                    };
 
                     if status.is_success() {
                         info!("✅ Análisis completado exitosamente - Función: {}, Nivel de riesgo: {:?}", function_name, risk_level);
