@@ -89,7 +89,7 @@ RUST_LOG=info cargo run
 # Debug detallado
 RUST_LOG=debug cargo run
 
-# Solo errores  
+# Solo errores
 RUST_LOG=error cargo run
 
 # Logs específicos por módulo
@@ -312,7 +312,7 @@ El servicio incluye un sistema completo de logging que proporciona visibilidad d
 - ✅ Decodificaciones exitosas con función y argumentos
 - ❌ Errores al decodificar call data
 
-#### Endpoint `/analysis`  
+#### Endpoint `/analysis`
 - 📥 Peticiones recibidas con dirección de contrato
 - ❌ API key de DeepSeek no configurada
 - ❌ Direcciones de contrato inválidas
@@ -367,13 +367,6 @@ El servicio web responde con códigos de estado HTTP apropiados y un cuerpo JSON
 - **Integración**: Permite que otros servicios analicen llamadas a contratos automáticamente
 - **Desarrollo**: Herramienta para depuración y pruebas durante el desarrollo de contratos
 - **Educación**: Aprender sobre seguridad de contratos inteligentes con ejemplos reales
-
-## 🤝 Contribuir
-
-1. Haz fork del repositorio
-2. Crea una rama de características
-3. Realiza tus cambios
-4. Envía un pull request
 
 ## 📄 Licencia
 
