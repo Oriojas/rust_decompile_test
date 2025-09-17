@@ -17,6 +17,18 @@ Una aplicación en Rust que funciona como servicio web local para obtener ABIs d
 - **🔑 Soporte API Key**: Usa API keys de Arbiscan y DeepSeek para mejor rendimiento y acceso.
 - **📝 Sistema de Logging Completo**: Logs detallados de todas las peticiones HTTP, errores y eventos del sistema con diferentes niveles de verbosidad.
 
+## 🏗️ Estructura del Proyecto
+
+El código está organizado en módulos para facilitar la mantenibilidad y escalabilidad:
+
+- **`main.rs`**: Punto de entrada del programa, configura el servidor web y rutas de los endpoints.
+- **`lib.rs`**: Define las estructuras de datos compartidas (`PromptConfig`, `DecodeRequest`, `AnalysisResponse`, etc.) y declara los módulos.
+- **`handlers.rs`**: Contiene los manejadores para los endpoints HTTP (`/decode` y `/analysis`).
+- **`abi.rs`**: Maneja la obtención y cacheo de ABIs desde Arbiscan y archivos locales.
+- **`decode.rs`**: Lógica para decodificar llamadas a funciones de contratos inteligentes.
+- **`config.rs`**: Carga la configuración del prompt de análisis desde `src/prompt_config.json`.
+- **`ABI/`**: Carpeta para el cache local de ABIs descargados.
+
 ## 📋 Prerrequisitos
 
 - Rust 1.70+ instalado
