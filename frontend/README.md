@@ -1,16 +1,53 @@
-# React + Vite
+# 🌐 Risk Scanner Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interfaz de usuario moderna con estilo **Cyberpunk** para el análisis de riesgos de transacciones en Arbitrum Sepolia.
 
-Currently, two official plugins are available:
+![Cyberpunk UI](./cyberpunk_preview.png)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Características
 
-## React Compiler
+- **Estética Cyberpunk**: Paleta de colores neón (Cyan/Pink/Green) y fondo oscuro.
+- **Componentes React**:
+  - `TransactionForm`: Entrada de datos y validación.
+  - `RiskAnalysis`: Visualización de resultados con Markdown renderizado.
+  - `Spinner`: Indicador de carga animado personalizado.
+- **Integración API**: Conectado directamente al backend Rust (`localhost:8080`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🚀 Inicio Rápido
 
-## Expanding the ESLint configuration
+Asegúrate de que el backend Rust esté corriendo en el puerto 8080.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. **Instalar dependencias**:
+   ```bash
+   npm install
+   ```
+
+2. **Iniciar servidor de desarrollo**:
+   ```bash
+   npm run dev
+   ```
+
+3. **Construir para producción**:
+   ```bash
+   npm run build
+   ```
+
+## 🛠️ Tecnologías
+
+- **Vite**: Build tool ultrarrápido.
+- **React**: Biblioteca UI.
+- **React Markdown**: Renderizado seguro de respuestas de IA.
+- **CSS3**: Variables CSS y animaciones personalizadas (sin frameworks pesados).
+
+## 🎨 Personalización
+
+Los estilos globales se encuentran en `src/index.css`. Puedes ajustar las variables CSS para cambiar la paleta de colores:
+
+```css
+:root {
+  --neon-green: #39ff14;
+  --neon-pink: #ff00ff;
+  --neon-cyan: #00ffff;
+  /* ... */
+}
+```
