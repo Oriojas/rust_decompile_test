@@ -268,7 +268,7 @@ Los cambios se aplican automáticamente al reiniciar el servicio.
 - `serde_json`: Serialización JSON
 - `tokio`: Runtime asíncrono
 - `hex`: Codificación hexadecimal
-- `dotenv`: Variables de entorno
+- `dotenvy`: Variables de entorno (fork mantenido de dotenv)
 - `url`: Utilizado para parsear URLs de API
 - `log`: Biblioteca de logging estándar
 - `env_logger`: Implementación de logger para variables de entorno
@@ -367,6 +367,21 @@ El servicio web responde con códigos de estado HTTP apropiados y un cuerpo JSON
 - **Integración**: Permite que otros servicios analicen llamadas a contratos automáticamente
 - **Desarrollo**: Herramienta para depuración y pruebas durante el desarrollo de contratos
 - **Educación**: Aprender sobre seguridad de contratos inteligentes con ejemplos reales
+## 🏷️ Nombres sugeridos
+
+A continuación se presentan algunas propuestas de nombres para la aplicación, enfocadas en la temática de protección y seguridad:
+
+- **ChainGuard** – Evoca un guardián que protege la cadena de bloques.
+- **TxSentinel** – Un centinela que vigila cada transacción.
+- **SecureSwap** – Transacciones seguras y swaps protegidos.
+- **BlockShield** – Un escudo que defiende los contratos.
+- **RiskVault** – Un cofre seguro donde se almacenan los análisis de riesgo.
+- **Guardify** – Hace que la aplicación “guarde” o proteja.
+- **TxGuardian** – Protección directa a cada transacción.
+- **RiskRadar** – Detecta riesgos de forma proactiva.
+- **ShieldedTx** – Transacciones blindadas.
+- **FraudFence** – Una barrera contra actividades fraudulentas.
+
 
 ## 📄 Licencia
 
