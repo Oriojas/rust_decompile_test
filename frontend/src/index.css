@@ -1,25 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;600&display=swap');
+
 :root {
-  --neon-green: #39ff14;
-  --neon-pink: #ff00ff;
-  --neon-cyan: #00ffff;
-  --neon-red: #ff3333;
-  --bg-dark: #050510;
-  --bg-panel: rgba(10, 10, 26, 0.8);
-  --text-main: #e0e0e0;
-  --font-display: 'Orbitron', sans-serif;
+  /* Chainlink Hackathon Palette */
+  --brand-deep-blue: #00015E;
+  /* Main Background */
+  --brand-blue: #2E7BFF;
+  /* Primary Action / Links */
+  --brand-electric: #0102FB;
+  /* Accents */
+  --brand-panel-bg: rgba(0, 1, 94, 0.95);
+
+  --text-main: #F5F7FA;
+  --text-muted: #8da2c0;
+
+  --risk-low: #4CAF50;
+  --risk-medium: #FFC107;
+  --risk-high: #F44336;
+
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'Roboto Mono', monospace;
 }
 
 body {
   margin: 0;
-  background-color: var(--bg-dark);
+  background-color: var(--brand-deep-blue);
   color: var(--text-main);
-  font-family: var(--font-mono);
-  background-image:
-    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 30px 30px;
+  font-family: var(--font-display);
+  /* Intesified central gradient: Bright Blue (#1c4fd6) to Deep Navy */
+  background: radial-gradient(circle at center, #1c4fd6 0%, var(--brand-deep-blue) 85%);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
@@ -31,129 +41,149 @@ body {
 /* Utilities */
 .cyber-title {
   font-family: var(--font-display);
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 4px;
-  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+  font-weight: 800;
+  font-size: 2.5rem;
+  text-transform: none;
+  /* Removed uppercase */
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--brand-blue) 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.5));
+  margin-bottom: 2rem;
 }
 
 .cyber-panel {
-  background: var(--bg-panel);
-  border: 1px solid var(--neon-cyan);
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  padding: 2rem;
-  border-radius: 4px;
+  /* Transparent background with blur */
+  background: rgba(0, 1, 94, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  /* Stronger border and Blue Glow */
+  border: 1px solid rgba(46, 123, 255, 0.5);
+  box-shadow: 0 0 40px rgba(46, 123, 255, 0.15);
+  padding: 2.5rem;
+  border-radius: 16px;
+  /* Slightly more rounded */
   position: relative;
   overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.cyber-panel:hover {
+  border-color: rgba(46, 123, 255, 0.5);
+  box-shadow: 0 8px 30px rgba(0, 1, 94, 0.6);
+}
+
+/* Top accent line */
 .cyber-panel::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  height: 4px;
+  background: linear-gradient(90deg, var(--brand-blue), var(--brand-electric));
 }
 
 .cyber-input {
   width: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid #333;
-  border-left: 2px solid var(--neon-cyan);
-  color: var(--neon-cyan);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  border-left: 4px solid var(--brand-blue);
+  /* Thicker branding line */
+  color: var(--text-main);
   font-family: var(--font-mono);
   padding: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  /* More spacing */
   font-size: 1rem;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
 .cyber-input:focus {
   outline: none;
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
-  border-color: var(--neon-cyan);
+  background: rgba(46, 123, 255, 0.05);
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 3px rgba(46, 123, 255, 0.2);
 }
 
 .cyber-button {
-  background: transparent;
-  color: var(--neon-green);
-  border: 1px solid var(--neon-green);
+  background: var(--brand-blue);
+  color: #fff;
+  border: none;
   padding: 1rem 2rem;
   font-family: var(--font-display);
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   width: 100%;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(46, 123, 255, 0.3);
 }
 
 .cyber-button:hover {
-  background: var(--neon-green);
-  color: var(--bg-dark);
-  box-shadow: 0 0 20px var(--neon-green);
+  background: var(--brand-electric);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(46, 123, 255, 0.4);
+}
+
+.cyber-button:active {
+  transform: translateY(0);
 }
 
 .risk-badge {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 1rem;
   font-family: var(--font-display);
-  border-radius: 2px;
-  font-weight: bold;
+  border-radius: 20px;
+  /* Pill shape */
+  font-weight: 600;
+  font-size: 0.9rem;
   display: inline-block;
+  letter-spacing: 0.5px;
 }
 
 .risk-low {
-  color: var(--neon-green);
-  border: 1px solid var(--neon-green);
-  box-shadow: 0 0 10px var(--neon-green);
+  background: rgba(76, 175, 80, 0.15);
+  color: var(--risk-low);
+  border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 .risk-medium {
-  color: #ffd700;
-  border: 1px solid #ffd700;
-  box-shadow: 0 0 10px #ffd700;
+  background: rgba(255, 193, 7, 0.15);
+  color: var(--risk-medium);
+  border: 1px solid rgba(255, 193, 7, 0.3);
 }
 
 .risk-high {
-  color: var(--neon-red);
-  border: 1px solid var(--neon-red);
-  box-shadow: 0 0 10px var(--neon-red);
+  background: rgba(244, 67, 54, 0.15);
+  color: var(--risk-high);
+  border: 1px solid rgba(244, 67, 54, 0.3);
 }
 
 .cyber-spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid rgba(0, 255, 255, 0.1);
-  border-top-color: var(--neon-cyan);
-  border-right-color: var(--neon-pink);
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
   border-radius: 50%;
   animation: cyber-spin 0.8s linear infinite;
   display: inline-block;
   vertical-align: middle;
-  margin-right: 10px;
-  box-shadow: 0 0 15px var(--neon-cyan);
+  margin-right: 12px;
+  box-shadow: none;
+  /* Removed neon glow */
 }
 
 @keyframes cyber-spin {
   0% {
     transform: rotate(0deg);
-    box-shadow: 0 0 15px var(--neon-cyan);
-  }
-
-  50% {
-    box-shadow: 0 0 25px var(--neon-pink);
   }
 
   100% {
     transform: rotate(360deg);
-    box-shadow: 0 0 15px var(--neon-cyan);
   }
 }
