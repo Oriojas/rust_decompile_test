@@ -268,7 +268,7 @@ Los cambios se aplican automáticamente al reiniciar el servicio.
 - `serde_json`: Serialización JSON
 - `tokio`: Runtime asíncrono
 - `hex`: Codificación hexadecimal
-- `dotenv`: Variables de entorno
+- `dotenvy`: Variables de entorno (fork mantenido de dotenv)
 - `url`: Utilizado para parsear URLs de API
 - `log`: Biblioteca de logging estándar
 - `env_logger`: Implementación de logger para variables de entorno

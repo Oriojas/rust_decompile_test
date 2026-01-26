@@ -6,7 +6,7 @@ use rust_decompile_test::handlers::{analysis_handler, decode_handler};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
     env_logger::init();
 
     let server_address = "127.0.0.1:8080";
