@@ -368,6 +368,22 @@ El servicio web responde con códigos de estado HTTP apropiados y un cuerpo JSON
 - **Desarrollo**: Herramienta para depuración y pruebas durante el desarrollo de contratos
 - **Educación**: Aprender sobre seguridad de contratos inteligentes con ejemplos reales
 
-## 📄 Licencia
+## � Frontend Web (Nuevo)
+
+Además del servicio API, el proyecto ahora incluye una interfaz gráfica moderna estilo Cyberpunk.
+
+1.  **Requisitos**: Node.js instalado.
+2.  **Instalación**:
+    ```bash
+    cd frontend
+    npm install
+    ```
+3.  **Ejecución**:
+    ```bash
+    npm run dev
+    ```
+    La interfaz estará disponible en `http://localhost:5173`. Asegúrate de tener el backend corriendo en paralelo (`cargo run`).
+
+## �📄 Licencia
 
 Este proyecto está licenciado bajo la Licencia MIT.
